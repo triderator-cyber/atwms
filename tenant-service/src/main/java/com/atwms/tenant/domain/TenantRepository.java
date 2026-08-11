@@ -3,6 +3,9 @@ package com.atwms.tenant.domain;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
 import jakarta.transaction.Transactional;
 
 import java.util.List;
@@ -19,7 +22,13 @@ public class TenantRepository {
     }
 
     public List<Tenant> findAll() {
-        return em.createNamedQuery(Tenant.FIND_ALL, Tenant.class).getResultList();
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tenant> query = cb.createQuery(Tenant.class);
+        Root<Tenant> tenant = query.from(Tenant.class);
+
+        query.select(tenant).orderBy(cb.desc(tenant.get(Tenant_.createdAt)));
+
+        return em.createQuery(query).getResultList();
     }
 
     public boolean exists(String id) {

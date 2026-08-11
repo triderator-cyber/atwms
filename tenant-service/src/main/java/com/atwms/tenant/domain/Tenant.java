@@ -5,7 +5,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
-import jakarta.persistence.NamedQuery;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -23,10 +22,7 @@ import java.time.Instant;
  */
 @Entity
 @Table(name = "tenant")
-@NamedQuery(name = Tenant.FIND_ALL, query = "SELECT t FROM Tenant t ORDER BY t.createdAt DESC")
 public class Tenant {
-
-    public static final String FIND_ALL = "Tenant.findAll";
 
     /**
      * Fachlicher Schluessel, identisch mit dem tenant_id-Claim im JWT.

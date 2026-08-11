@@ -24,5 +24,10 @@
             <artifactId>microprofile</artifactId>
             <type>pom</type>
         </dependency>
+        <!-- Emitter und @Channel fuer das Outbox-Relay -->
+        <dependency>
+            <groupId>org.eclipse.microprofile.reactive.messaging</groupId>
+            <artifactId>microprofile-reactive-messaging-api</artifactId>
+        </dependency>
     </dependencies>
 </project>

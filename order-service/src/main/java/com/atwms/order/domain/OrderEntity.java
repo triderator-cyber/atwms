@@ -7,7 +7,6 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import jakarta.persistence.NamedQuery;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
@@ -17,21 +16,14 @@ import java.util.UUID;
 /**
  * Bestellung eines Mandanten.
  *
- * <p>Erbt {@code tenant_id} von {@link TenantAwareEntity}. Alle Queries sind
- * als NamedQuery definiert und fuehren den Mandanten als Pflichtparameter -
- * so kann keine Abfrage "aus Versehen" ohne Mandantenfilter entstehen.</p>
+ * <p>Erbt {@code tenant_id} von {@link TenantAwareEntity}. Alle Abfragen liegen
+ * gebuendelt im {@code OrderRepository} und setzen den Mandantenfilter dort
+ * selbst - so kann keine Abfrage "aus Versehen" ohne ihn entstehen.</p>
  */
 @Entity
 @Table(name = "orders",
        indexes = @Index(name = "idx_orders_tenant", columnList = "tenant_id"))
-@NamedQuery(name = OrderEntity.FIND_BY_TENANT,
-            query = "SELECT o FROM OrderEntity o WHERE o.tenantId = :tenantId ORDER BY o.createdAt DESC")
-@NamedQuery(name = OrderEntity.COUNT_BY_TENANT_SINCE,
-            query = "SELECT COUNT(o) FROM OrderEntity o WHERE o.tenantId = :tenantId AND o.createdAt >= :since")
 public class OrderEntity extends TenantAwareEntity {
-
-    public static final String FIND_BY_TENANT = "Order.findByTenant";
-    public static final String COUNT_BY_TENANT_SINCE = "Order.countByTenantSince";
 
     @Id
     @Column(name = "id", length = 36)

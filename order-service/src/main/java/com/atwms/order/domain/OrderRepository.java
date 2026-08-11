@@ -1,10 +1,14 @@
 package com.atwms.order.domain;
 
+import com.atwms.common.tenant.TenantAwareEntity_;
 import com.atwms.common.tenant.TenantContext;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
 import jakarta.transaction.Transactional;
 
 import java.time.Instant;
@@ -14,7 +18,7 @@ import java.util.Optional;
 /**
  * Datenzugriff fuer Bestellungen.
  *
- * <p>Das Repository ist die einzige Stelle, an der Queries entstehen, und
+ * <p>Das Repository ist die einzige Stelle, an der Abfragen entstehen, und
  * setzt den Mandantenfilter selbst - die aufrufende Fachlogik kann ihn damit
  * nicht vergessen.</p>
  */
@@ -28,9 +32,15 @@ public class OrderRepository {
     TenantContext tenantContext;
 
     public List<OrderEntity> findAllForCurrentTenant() {
-        return em.createNamedQuery(OrderEntity.FIND_BY_TENANT, OrderEntity.class)
-                .setParameter("tenantId", tenantContext.requireTenantId())
-                .getResultList();
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<OrderEntity> query = cb.createQuery(OrderEntity.class);
+        Root<OrderEntity> order = query.from(OrderEntity.class);
+
+        query.select(order)
+                .where(cb.equal(order.get(TenantAwareEntity_.tenantId), tenantContext.requireTenantId()))
+                .orderBy(cb.desc(order.get(OrderEntity_.createdAt)));
+
+        return em.createQuery(query).getResultList();
     }
 
     /**
@@ -45,10 +55,16 @@ public class OrderRepository {
     }
 
     public long countSince(Instant since) {
-        return em.createNamedQuery(OrderEntity.COUNT_BY_TENANT_SINCE, Long.class)
-                .setParameter("tenantId", tenantContext.requireTenantId())
-                .setParameter("since", since)
-                .getSingleResult();
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Long> query = cb.createQuery(Long.class);
+        Root<OrderEntity> order = query.from(OrderEntity.class);
+
+        query.select(cb.count(order))
+                .where(cb.and(
+                        cb.equal(order.get(TenantAwareEntity_.tenantId), tenantContext.requireTenantId()),
+                        cb.greaterThanOrEqualTo(order.get(OrderEntity_.createdAt), since)));
+
+        return em.createQuery(query).getSingleResult();
     }
 
     @Transactional

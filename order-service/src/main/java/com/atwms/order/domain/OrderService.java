@@ -1,12 +1,14 @@
 package com.atwms.order.domain;
 
 import com.atwms.common.events.OrderCreatedEvent;
+import com.atwms.common.events.Topics;
+import com.atwms.common.outbox.Outbox;
 import com.atwms.common.tenant.TenantContext;
 import com.atwms.order.client.TenantInfo;
 import com.atwms.order.client.TenantPolicy;
-import com.atwms.order.messaging.OrderEventPublisher;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.core.Response;
 
 import java.math.BigDecimal;
@@ -37,7 +39,7 @@ public class OrderService {
     TenantContext tenantContext;
 
     @Inject
-    OrderEventPublisher eventPublisher;
+    Outbox outbox;
 
     public List<OrderEntity> listOrders() {
         return repository.findAllForCurrentTenant();
@@ -47,6 +49,19 @@ public class OrderService {
         return repository.findById(id);
     }
 
+    /**
+     * Legt eine Bestellung an und hinterlegt das zugehoerige Event in der Outbox.
+     *
+     * <p>{@code @Transactional} klammert beides in eine Transaktion. Damit gibt
+     * es nur noch zwei moegliche Ausgaenge: Bestellung und Event sind
+     * gespeichert, oder keines von beidem. Der frueher moegliche Fall - Bestellung
+     * committed, Event verloren, weil der Prozess dazwischen abstuerzte - kann
+     * nicht mehr eintreten.</p>
+     *
+     * <p>Die Pruefungen davor stehen bewusst ausserhalb der Schreiboperationen:
+     * ein abgelehnter Auftrag soll gar nichts hinterlassen.</p>
+     */
+    @Transactional
     public OrderEntity placeOrder(String customerReference, BigDecimal amount, String currency) {
         TenantInfo tenant = tenantPolicy.currentTenant()
                 .orElseThrow(() -> new OrderRejectedException(
@@ -73,14 +88,28 @@ public class OrderService {
 
         OrderEntity order = repository.save(new OrderEntity(customerReference, amount, currency));
 
-        // Erst nach erfolgreichem Commit informieren wir die uebrige Landschaft.
-        eventPublisher.publish(toEvent(order));
+        // Kein Kafka-Aufruf an dieser Stelle: das Event geht in dieselbe
+        // Datenbanktransaktion. Die Uebertragung uebernimmt spaeter das
+        // OutboxRelay, unabhaengig vom Antwortzeitpunkt dieses Requests.
+        //
+        // Die eventId entsteht hier und dient zugleich als Schluessel des
+        // Outbox-Eintrags. Dadurch traegt eine mehrfach zugestellte Nachricht
+        // immer dieselbe Kennung, und Konsumenten erkennen die Dublette.
+        String eventId = UUID.randomUUID().toString();
+        outbox.append(
+                eventId,
+                Topics.ORDER_CREATED,
+                "Order",
+                order.getId(),
+                "OrderCreated",
+                tenantContext.requireTenantId(),
+                toEvent(order, eventId));
         return order;
     }
 
-    private OrderCreatedEvent toEvent(OrderEntity order) {
+    private OrderCreatedEvent toEvent(OrderEntity order, String eventId) {
         OrderCreatedEvent event = new OrderCreatedEvent();
-        event.setEventId(UUID.randomUUID().toString());
+        event.setEventId(eventId);
         event.setTenantId(tenantContext.requireTenantId());
         event.setOrderId(order.getId());
         event.setCustomerReference(order.getCustomerReference());

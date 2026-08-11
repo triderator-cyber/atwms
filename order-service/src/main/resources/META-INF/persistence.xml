@@ -7,6 +7,9 @@
 
     <persistence-unit name="orderPU" transaction-type="JTA">
         <jta-data-source>java:app/jdbc/OrderDS</jta-data-source>
+        <!-- Die Outbox-Entity liegt im Modul common und wird deshalb nicht
+             automatisch gefunden - sie muss hier ausdruecklich stehen. -->
+        <class>com.atwms.common.outbox.OutboxEvent</class>
         <exclude-unlisted-classes>false</exclude-unlisted-classes>
 
         <properties>

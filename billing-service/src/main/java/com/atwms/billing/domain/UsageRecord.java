@@ -5,7 +5,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import jakarta.persistence.NamedQuery;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
@@ -28,16 +27,7 @@ import java.util.UUID;
        uniqueConstraints = @UniqueConstraint(name = "uq_usage_source_event",
                                              columnNames = "source_event_id"),
        indexes = @Index(name = "idx_usage_tenant_period", columnList = "tenant_id, billing_period"))
-@NamedQuery(name = UsageRecord.SUM_FOR_PERIOD,
-            query = "SELECT COALESCE(SUM(u.amount), 0) FROM UsageRecord u "
-                    + "WHERE u.tenantId = :tenantId AND u.billingPeriod = :period")
-@NamedQuery(name = UsageRecord.COUNT_FOR_PERIOD,
-            query = "SELECT COUNT(u) FROM UsageRecord u "
-                    + "WHERE u.tenantId = :tenantId AND u.billingPeriod = :period")
 public class UsageRecord extends TenantAwareEntity {
-
-    public static final String SUM_FOR_PERIOD = "UsageRecord.sumForPeriod";
-    public static final String COUNT_FOR_PERIOD = "UsageRecord.countForPeriod";
 
     @Id
     @Column(name = "id", length = 36)

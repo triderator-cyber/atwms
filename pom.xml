@@ -32,6 +32,8 @@
         <!-- Plattform-Versionen -->
         <version.jakartaee.api>10.0.0</version.jakartaee.api>
         <version.microprofile>6.1</version.microprofile>
+        <!-- Muss zur Hibernate-Version des Servers passen (WildFly 35: 6.6.x) -->
+        <version.hibernate>6.6.3.Final</version.hibernate>
 
         <!-- WildFly / Galleon -->
         <version.wildfly>35.0.1.Final</version.wildfly>
@@ -129,6 +131,29 @@
     </dependencies>
 
     <build>
+        <plugins>
+            <!--
+                Erzeugt zu jeder Entity eine Metamodell-Klasse (Tenant_, OrderEntity_, ...)
+                unter target/generated-sources/annotations. Damit pruefen die
+                Criteria-Abfragen ihre Attributnamen zur Uebersetzungszeit statt
+                erst zur Laufzeit.
+                Der Prozessor laeuft nur beim Bauen und landet nicht im Artefakt.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.hibernate.orm</groupId>
+                            <artifactId>hibernate-jpamodelgen</artifactId>
+                            <version>${version.hibernate}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+        </plugins>
+
         <pluginManagement>
             <plugins>
                 <plugin>
