@@ -1,4 +1,4 @@
-package com.atwms.common.outbox;
+package com.atwms.outbox;
 
 import com.atwms.common.events.EventJson;
 import jakarta.enterprise.context.ApplicationScoped;

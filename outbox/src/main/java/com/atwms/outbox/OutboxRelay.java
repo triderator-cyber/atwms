@@ -1,4 +1,4 @@
-package com.atwms.common.outbox;
+package com.atwms.outbox;
 
 import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
@@ -42,7 +42,7 @@ public class OutboxRelay {
     ManagedScheduledExecutorService scheduler;
 
     @Inject
-    OutboxRepository repository;
+    OutboxDatabase database;
 
     @Inject
     @Channel("outbox-out")
@@ -90,7 +90,7 @@ public class OutboxRelay {
      * Package-private, damit ein Test ihn direkt aufrufen kann.
      */
     void relay() {
-        List<OutboxEvent> pending = repository.claimPending(batchSize);
+        List<OutboxEvent> pending = database.claimPending(batchSize);
         if (pending.isEmpty()) {
             return;
         }
@@ -104,13 +104,13 @@ public class OutboxRelay {
                 emitter.send(event.getPayload())
                         .toCompletableFuture()
                         .get(10, TimeUnit.SECONDS);
-                repository.markSent(event.getId());
+                database.markSent(event.getId());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return;
             } catch (Exception e) {
                 LOG.log(Level.WARNING, "Outbox-Eintrag konnte nicht uebertragen werden: " + event, e);
-                repository.markAttemptFailed(event.getId(), String.valueOf(e.getMessage()), maxAttempts);
+                database.markAttemptFailed(event.getId(), String.valueOf(e.getMessage()), maxAttempts);
             }
         }
     }
@@ -127,7 +127,7 @@ public class OutboxRelay {
 
     private void purgeQuietly() {
         try {
-            int removed = repository.purgeSentBefore(Instant.now().minus(Duration.ofHours(retentionHours)));
+            int removed = database.purgeSentBefore(Instant.now().minus(Duration.ofHours(retentionHours)));
             if (removed > 0) {
                 LOG.info(() -> removed + " bestaetigte Outbox-Eintraege entfernt.");
             }

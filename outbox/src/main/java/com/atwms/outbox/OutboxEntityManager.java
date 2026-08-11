@@ -1,4 +1,4 @@
-package com.atwms.common.outbox;
+package com.atwms.outbox;
 
 import jakarta.inject.Qualifier;
 

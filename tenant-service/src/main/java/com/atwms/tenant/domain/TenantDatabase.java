@@ -1,44 +1,49 @@
 package com.atwms.tenant.domain;
 
+import com.atwms.common.persistence.DatabaseAccess;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Root;
 import jakarta.transaction.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Saemtlicher Datenbankzugriff des Tenant-Service.
+ *
+ * <p>Der Service besitzt genau diese eine Zugriffsklasse. Kommt spaeter eine
+ * weitere Entity dazu, wandern deren Abfragen ebenfalls hierher - nicht in eine
+ * zweite Klasse. Dadurch gibt es einen einzigen Ort, an dem sich beantworten
+ * laesst, welche Abfragen dieser Service ueberhaupt stellt.</p>
+ */
 @ApplicationScoped
-public class TenantRepository {
+public class TenantDatabase extends DatabaseAccess {
 
     @PersistenceContext(unitName = "tenantPU")
     EntityManager em;
 
+    @Override
+    protected EntityManager em() {
+        return em;
+    }
+
     public Optional<Tenant> findById(String id) {
-        return Optional.ofNullable(em.find(Tenant.class, id));
+        return byKey(Tenant.class, id);
     }
 
     public List<Tenant> findAll() {
-        CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<Tenant> query = cb.createQuery(Tenant.class);
-        Root<Tenant> tenant = query.from(Tenant.class);
-
-        query.select(tenant).orderBy(cb.desc(tenant.get(Tenant_.createdAt)));
-
-        return em.createQuery(query).getResultList();
+        return list(Tenant.class, null,
+                (cb, tenant) -> List.of(cb.desc(tenant.get(Tenant_.createdAt))));
     }
 
     public boolean exists(String id) {
-        return em.find(Tenant.class, id) != null;
+        return findById(id).isPresent();
     }
 
     @Transactional
     public Tenant create(Tenant tenant) {
-        em.persist(tenant);
-        return tenant;
+        return persist(tenant);
     }
 
     @Transactional

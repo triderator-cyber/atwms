@@ -3,7 +3,7 @@ package com.atwms.tenant.api;
 import com.atwms.common.api.ApiError;
 import com.atwms.common.tenant.TenantContext;
 import com.atwms.tenant.domain.Tenant;
-import com.atwms.tenant.domain.TenantRepository;
+import com.atwms.tenant.domain.TenantDatabase;
 import com.atwms.tenant.domain.TenantStatus;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -42,7 +42,7 @@ import java.util.List;
 public class TenantResource {
 
     @Inject
-    TenantRepository repository;
+    TenantDatabase database;
 
     @Inject
     TenantContext tenantContext;
@@ -54,7 +54,7 @@ public class TenantResource {
     @RolesAllowed("platform-admin")
     @Operation(summary = "Listet alle Mandanten der Plattform.")
     public List<TenantView> list() {
-        return repository.findAll().stream().map(TenantView::of).toList();
+        return database.findAll().stream().map(TenantView::of).toList();
     }
 
     @GET
@@ -62,7 +62,7 @@ public class TenantResource {
     @RolesAllowed({"platform-admin", "tenant-admin", "user"})
     @Operation(summary = "Liefert den Mandanten des aktuell angemeldeten Nutzers.")
     public Response currentTenant() {
-        return repository.findById(tenantContext.requireTenantId())
+        return database.findById(tenantContext.requireTenantId())
                 .map(tenant -> Response.ok(TenantView.of(tenant)).build())
                 .orElseGet(() -> notFound(tenantContext.requireTenantId()));
     }
@@ -81,7 +81,7 @@ public class TenantResource {
                             "Zugriff auf fremde Mandanten ist nicht erlaubt."))
                     .build();
         }
-        return repository.findById(id)
+        return database.findById(id)
                 .map(tenant -> Response.ok(TenantView.of(tenant)).build())
                 .orElseGet(() -> notFound(id));
     }
@@ -90,7 +90,7 @@ public class TenantResource {
     @RolesAllowed("platform-admin")
     @Operation(summary = "Legt einen neuen Mandanten an (Onboarding).")
     public Response create(@Valid CreateTenantRequest request) {
-        if (repository.exists(request.getId())) {
+        if (database.exists(request.getId())) {
             return Response.status(Response.Status.CONFLICT)
                     .entity(new ApiError("TENANT_EXISTS",
                             "Mandant '" + request.getId() + "' existiert bereits."))
@@ -102,7 +102,7 @@ public class TenantResource {
         // In einem echten Onboarding folgt hier zusaetzlich das Provisioning:
         // Keycloak-Gruppe anlegen, ggf. Schema erzeugen, Willkommens-Mail ausloesen.
         // Deshalb bleibt der Status zunaechst PROVISIONING.
-        repository.create(tenant);
+        database.create(tenant);
 
         return Response.created(UriBuilder.fromResource(TenantResource.class)
                         .path(tenant.getId()).build())
@@ -115,7 +115,7 @@ public class TenantResource {
     @RolesAllowed("platform-admin")
     @Operation(summary = "Aendert den Status eines Mandanten (z. B. Sperre bei Zahlungsverzug).")
     public Response changeStatus(@PathParam("id") String id, TenantStatus status) {
-        return repository.updateStatus(id, status)
+        return database.updateStatus(id, status)
                 .map(tenant -> Response.ok(TenantView.of(tenant)).build())
                 .orElseGet(() -> notFound(id));
     }

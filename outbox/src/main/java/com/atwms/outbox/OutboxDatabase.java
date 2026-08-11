@@ -1,32 +1,39 @@
-package com.atwms.common.outbox;
+package com.atwms.outbox;
 
+import com.atwms.common.persistence.DatabaseAccess;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaDelete;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Root;
 import jakarta.transaction.Transactional;
 
 import java.time.Instant;
 import java.util.List;
 
 /**
- * Datenzugriff des Pollers auf die Outbox.
+ * Datenbankzugriff des Outbox-Pollers.
  *
  * <p>Alle Methoden laufen in einer eigenen Transaktion
  * ({@code REQUIRES_NEW}), denn der Poller arbeitet ausserhalb jeder fachlichen
- * Transaktion und soll pro Eintrag einzeln committen. Ein Fehler beim
- * fuenften Event darf die vier bereits uebertragenen nicht zurueckrollen.</p>
+ * Transaktion und soll pro Eintrag einzeln committen. Ein Fehler beim fuenften
+ * Event darf die vier bereits uebertragenen nicht zurueckrollen.</p>
+ *
+ * <p>Das Schreiben in die Outbox liegt bewusst nicht hier, sondern in
+ * {@link Outbox}: Dort darf gerade <em>keine</em> eigene Transaktion
+ * aufgespannt werden, weil das Event zusammen mit der fachlichen Aenderung
+ * committen muss.</p>
  */
 @ApplicationScoped
-public class OutboxRepository {
+public class OutboxDatabase extends DatabaseAccess {
 
     @Inject
     @OutboxEntityManager
     EntityManager em;
+
+    @Override
+    protected EntityManager em() {
+        return em;
+    }
 
     /**
      * Holt die naechsten unversendeten Eintraege.
@@ -38,15 +45,9 @@ public class OutboxRepository {
      */
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public List<OutboxEvent> claimPending(int batchSize) {
-        CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<OutboxEvent> query = cb.createQuery(OutboxEvent.class);
-        Root<OutboxEvent> event = query.from(OutboxEvent.class);
-
-        query.select(event)
-                .where(cb.equal(event.get(OutboxEvent_.status), OutboxStatus.NEW))
-                .orderBy(cb.asc(event.get(OutboxEvent_.createdAt)));
-
-        return em.createQuery(query)
+        return select(OutboxEvent.class,
+                        (cb, event) -> cb.equal(event.get(OutboxEvent_.status), OutboxStatus.NEW),
+                        (cb, event) -> List.of(cb.asc(event.get(OutboxEvent_.createdAt))))
                 .setLockMode(LockModeType.PESSIMISTIC_WRITE)
                 .setHint("jakarta.persistence.lock.timeout", -2) // -2 = SKIP LOCKED
                 .setMaxResults(batchSize)
@@ -55,11 +56,10 @@ public class OutboxRepository {
 
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void markSent(String id) {
-        OutboxEvent event = em.find(OutboxEvent.class, id);
-        if (event != null) {
+        byKey(OutboxEvent.class, id).ifPresent(event -> {
             event.setStatus(OutboxStatus.SENT);
             event.setSentAt(Instant.now());
-        }
+        });
     }
 
     /**
@@ -69,28 +69,20 @@ public class OutboxRepository {
      */
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void markAttemptFailed(String id, String error, int maxAttempts) {
-        OutboxEvent event = em.find(OutboxEvent.class, id);
-        if (event == null) {
-            return;
-        }
-        event.setAttempts(event.getAttempts() + 1);
-        event.setLastError(error != null && error.length() > 1024 ? error.substring(0, 1024) : error);
-        if (event.getAttempts() >= maxAttempts) {
-            event.setStatus(OutboxStatus.FAILED);
-        }
+        byKey(OutboxEvent.class, id).ifPresent(event -> {
+            event.setAttempts(event.getAttempts() + 1);
+            event.setLastError(error != null && error.length() > 1024 ? error.substring(0, 1024) : error);
+            if (event.getAttempts() >= maxAttempts) {
+                event.setStatus(OutboxStatus.FAILED);
+            }
+        });
     }
 
     /** Raeumt bestaetigte Eintraege ab, damit die Tabelle nicht unbegrenzt waechst. */
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public int purgeSentBefore(Instant threshold) {
-        CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaDelete<OutboxEvent> delete = cb.createCriteriaDelete(OutboxEvent.class);
-        Root<OutboxEvent> event = delete.from(OutboxEvent.class);
-
-        delete.where(cb.and(
+        return deleteWhere(OutboxEvent.class, (cb, event) -> cb.and(
                 cb.equal(event.get(OutboxEvent_.status), OutboxStatus.SENT),
                 cb.lessThan(event.get(OutboxEvent_.sentAt), threshold)));
-
-        return em.createQuery(delete).executeUpdate();
     }
 }

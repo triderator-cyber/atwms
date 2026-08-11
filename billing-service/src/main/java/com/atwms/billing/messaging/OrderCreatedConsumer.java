@@ -3,7 +3,7 @@ package com.atwms.billing.messaging;
 import com.atwms.common.events.EventJson;
 import com.atwms.common.events.OrderCreatedEvent;
 import com.atwms.billing.domain.UsageRecord;
-import com.atwms.billing.domain.UsageRepository;
+import com.atwms.billing.domain.BillingDatabase;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -39,7 +39,7 @@ public class OrderCreatedConsumer {
             .withZone(ZoneOffset.UTC);
 
     @Inject
-    UsageRepository repository;
+    BillingDatabase database;
 
     @Incoming("order-created-in")
     public void onOrderCreated(String payload) {
@@ -54,7 +54,7 @@ public class OrderCreatedConsumer {
             record.setCurrency(event.getCurrency());
             record.setBillingPeriod(PERIOD.format(event.getOccurredAt()));
 
-            if (repository.recordIfNew(record)) {
+            if (database.recordIfNew(record)) {
                 LOG.fine(() -> "Verbrauch verbucht fuer Mandant " + event.getTenantId());
             } else {
                 LOG.fine(() -> "Event " + event.getEventId() + " war bereits verbucht - ignoriert.");

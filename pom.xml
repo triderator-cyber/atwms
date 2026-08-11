@@ -17,6 +17,7 @@
 
     <modules>
         <module>common</module>
+        <module>outbox</module>
         <module>tenant-service</module>
         <module>billing-service</module>
         <module>order-service</module>
@@ -93,10 +94,15 @@
                 <scope>runtime</scope>
             </dependency>
 
-            <!-- Internes gemeinsames Modul -->
+            <!-- Interne Module -->
             <dependency>
                 <groupId>com.atwms</groupId>
                 <artifactId>common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.atwms</groupId>
+                <artifactId>outbox</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

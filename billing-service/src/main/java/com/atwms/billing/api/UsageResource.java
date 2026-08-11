@@ -1,6 +1,6 @@
 package com.atwms.billing.api;
 
-import com.atwms.billing.domain.UsageRepository;
+import com.atwms.billing.domain.BillingDatabase;
 import com.atwms.common.tenant.TenantContext;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -23,7 +23,7 @@ import java.time.YearMonth;
 public class UsageResource {
 
     @Inject
-    UsageRepository repository;
+    BillingDatabase database;
 
     @Inject
     TenantContext tenantContext;
@@ -38,8 +38,8 @@ public class UsageResource {
         UsageSummary summary = new UsageSummary();
         summary.setTenantId(tenantId);
         summary.setPeriod(effectivePeriod);
-        summary.setOrderCount(repository.countForPeriod(tenantId, effectivePeriod));
-        summary.setTotalAmount(repository.sumForPeriod(tenantId, effectivePeriod));
+        summary.setOrderCount(database.countForPeriod(tenantId, effectivePeriod));
+        summary.setTotalAmount(database.sumForPeriod(tenantId, effectivePeriod));
         return summary;
     }
 }

@@ -10,7 +10,7 @@ import java.util.Optional;
  *
  * <p>Wird pro HTTP-Request genau einmal durch den {@link TenantResolutionFilter}
  * aus dem JWT befuellt und steht danach ueber CDI-Injection in jeder Schicht
- * (Resource, Service, Repository, Entity-Listener) zur Verfuegung.</p>
+ * (Resource, Service, Datenbankzugriff, Entity-Listener) zur Verfuegung.</p>
  *
  * <p>Bewusst {@code @RequestScoped}: damit ist ausgeschlossen, dass ein
  * Mandantenkontext versehentlich ueber Request-Grenzen hinweg "haengen bleibt" -

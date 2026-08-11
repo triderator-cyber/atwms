@@ -2,7 +2,7 @@ package com.atwms.order.domain;
 
 import com.atwms.common.events.OrderCreatedEvent;
 import com.atwms.common.events.Topics;
-import com.atwms.common.outbox.Outbox;
+import com.atwms.outbox.Outbox;
 import com.atwms.common.tenant.TenantContext;
 import com.atwms.order.client.TenantInfo;
 import com.atwms.order.client.TenantPolicy;
@@ -30,7 +30,7 @@ import java.util.UUID;
 public class OrderService {
 
     @Inject
-    OrderRepository repository;
+    OrderDatabase database;
 
     @Inject
     TenantPolicy tenantPolicy;
@@ -42,11 +42,11 @@ public class OrderService {
     Outbox outbox;
 
     public List<OrderEntity> listOrders() {
-        return repository.findAllForCurrentTenant();
+        return database.findAllForCurrentTenant();
     }
 
     public Optional<OrderEntity> findOrder(String id) {
-        return repository.findById(id);
+        return database.findById(id);
     }
 
     /**
@@ -78,7 +78,7 @@ public class OrderService {
         }
 
         Instant monthStart = Instant.now().truncatedTo(ChronoUnit.DAYS).minus(30, ChronoUnit.DAYS);
-        long used = repository.countSince(monthStart);
+        long used = database.countSince(monthStart);
         if (used >= tenant.getMonthlyOrderLimit()) {
             throw new OrderRejectedException(
                     "QUOTA_EXCEEDED",
@@ -86,7 +86,7 @@ public class OrderService {
                     "Monatslimit von " + tenant.getMonthlyOrderLimit() + " Bestellungen ist erreicht.");
         }
 
-        OrderEntity order = repository.save(new OrderEntity(customerReference, amount, currency));
+        OrderEntity order = database.save(new OrderEntity(customerReference, amount, currency));
 
         // Kein Kafka-Aufruf an dieser Stelle: das Event geht in dieselbe
         // Datenbanktransaktion. Die Uebertragung uebernimmt spaeter das

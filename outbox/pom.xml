@@ -10,11 +10,23 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>common</artifactId>
+    <artifactId>outbox</artifactId>
     <packaging>jar</packaging>
-    <name>Common (Tenant-Kontext, Security, Events)</name>
+    <name>Outbox (transaktionssichere Event-Veroeffentlichung)</name>
+
+    <description>
+        Bewusst ein eigenes Modul und nicht Teil von "common": Weld prueft beim
+        Deployment die Injektionspunkte aller gefundenen Beans. Laege die Outbox
+        in common, muesste jeder Service einen EntityManager und einen
+        Kafka-Kanal dafuer bereitstellen - auch die, die gar keine Events
+        publizieren. Diese Abhaengigkeit zieht sich nur herein, wer sie braucht.
+    </description>
 
     <dependencies>
+        <dependency>
+            <groupId>com.atwms</groupId>
+            <artifactId>common</artifactId>
+        </dependency>
         <dependency>
             <groupId>jakarta.platform</groupId>
             <artifactId>jakarta.jakartaee-web-api</artifactId>
@@ -23,6 +35,10 @@
             <groupId>org.eclipse.microprofile</groupId>
             <artifactId>microprofile</artifactId>
             <type>pom</type>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.microprofile.reactive.messaging</groupId>
+            <artifactId>microprofile-reactive-messaging-api</artifactId>
         </dependency>
     </dependencies>
 </project>

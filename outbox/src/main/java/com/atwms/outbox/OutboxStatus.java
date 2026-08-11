@@ -1,4 +1,4 @@
-package com.atwms.common.outbox;
+package com.atwms.outbox;
 
 /**
  * Zustand eines Outbox-Eintrags.

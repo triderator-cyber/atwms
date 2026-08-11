@@ -17,7 +17,7 @@ import java.util.UUID;
  * Bestellung eines Mandanten.
  *
  * <p>Erbt {@code tenant_id} von {@link TenantAwareEntity}. Alle Abfragen liegen
- * gebuendelt im {@code OrderRepository} und setzen den Mandantenfilter dort
+ * gebuendelt in {@code OrderDatabase} und setzen den Mandantenfilter dort
  * selbst - so kann keine Abfrage "aus Versehen" ohne ihn entstehen.</p>
  */
 @Entity
