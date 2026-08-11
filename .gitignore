@@ -1,0 +1,11 @@
+target/
+*.log
+
+# IntelliJ: Projekt-eigene Einstellungen bleiben lokal,
+# die geteilten Run-Konfigurationen unter .run/ werden bewusst eingecheckt.
+.idea/
+*.iml
+*.ipr
+*.iws
+
+.DS_Store

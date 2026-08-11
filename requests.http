@@ -1,0 +1,95 @@
+### Ende-zu-Ende-Durchlauf durch die Microservice-Landschaft.
+### Direkt in IntelliJ ausfuehrbar (HTTP Client) - Requests von oben nach unten.
+
+# Bewusst 127.0.0.1 statt localhost: WildFly bindet standardmaessig nur an
+# den IPv4-Loopback. Loest der HTTP-Client "localhost" zu ::1 auf, laeuft
+# jeder Request ins Leere ("Connection refused" auf [0:0:0:0:0:0:0:1]).
+@keycloak = http://127.0.0.1:8180
+@tenantApi = http://127.0.0.1:8081
+@orderApi = http://127.0.0.1:8082
+@billingApi = http://127.0.0.1:8083
+@notificationApi = http://127.0.0.1:8084
+
+### 1) Token fuer den Plattform-Administrator holen
+# @name platformToken
+POST {{keycloak}}/realms/saas/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=saas-frontend&username=platformadmin&password=admin
+
+> {% client.global.set("admin_token", response.body.access_token); %}
+
+### 2) Mandanten "acme" anlegen (Control Plane)
+POST {{tenantApi}}/api/tenants
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{
+  "id": "acme",
+  "displayName": "ACME GmbH",
+  "tier": "pro",
+  "monthlyOrderLimit": 50
+}
+
+### 3) Mandanten aktivieren (nach dem Provisioning)
+PUT {{tenantApi}}/api/tenants/acme/status
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+"ACTIVE"
+
+### 4) Token fuer Alice holen (gehoert zum Mandanten "acme")
+# @name aliceToken
+POST {{keycloak}}/realms/saas/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=saas-frontend&username=alice&password=alice
+
+> {% client.global.set("alice_token", response.body.access_token); %}
+
+### 5) Bestellung anlegen -> loest OrderCreated auf Kafka aus
+POST {{orderApi}}/api/orders
+Authorization: Bearer {{alice_token}}
+Content-Type: application/json
+
+{
+  "customerReference": "REF-1001",
+  "amount": 249.90,
+  "currency": "EUR"
+}
+
+### 6) Eigene Bestellungen lesen (nur Mandant "acme")
+GET {{orderApi}}/api/orders
+Authorization: Bearer {{alice_token}}
+
+### 7) Verbrauch im Billing-Service - vom Event befuellt, ohne Aufruf durch Order
+GET {{billingApi}}/api/usage/current
+Authorization: Bearer {{alice_token}}
+
+### 8) Benachrichtigungen - zweiter Consumer desselben Events
+GET {{notificationApi}}/api/notifications
+Authorization: Bearer {{alice_token}}
+
+### 9) Mandantentrennung pruefen: Bob gehoert zu "globex" und sieht nichts von "acme"
+# @name bobToken
+POST {{keycloak}}/realms/saas/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=saas-frontend&username=bob&password=bob
+
+> {% client.global.set("bob_token", response.body.access_token); %}
+
+### 10) Erwartung: leere Liste, obwohl Bestellungen in derselben Tabelle liegen
+GET {{orderApi}}/api/orders
+Authorization: Bearer {{bob_token}}
+
+### 11) Erwartung: 403 - fremder Mandant ist nicht lesbar
+GET {{tenantApi}}/api/tenants/acme
+Authorization: Bearer {{bob_token}}
+
+### Health liegt auf der Management-Schnittstelle (Port 9990 + Offset),
+### nicht auf dem Anwendungsport.
+GET http://127.0.0.1:9992/health/ready
+
+### OpenAPI dagegen auf dem Anwendungsport.
+GET {{orderApi}}/openapi

@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="02 Order Service (8082)" type="JarApplication">
+    <option name="JAR_PATH" value="$PROJECT_DIR$/order-service/target/order-service-bootable.jar" />
+    <option name="VM_PARAMETERS" value="-XX:+DisableAttachMechanism -Djava.util.logging.manager=org.jboss.logmanager.LogManager -Djboss.socket.binding.port-offset=2" />
+    <option name="WORKING_DIRECTORY" value="C:\Development\ATwms" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+    <option name="ALTERNATIVE_JRE_PATH" value="21" />
+    <method v="2" />
+  </configuration>
+</component>

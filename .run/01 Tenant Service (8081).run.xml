@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="01 Tenant Service (8081)" type="JarApplication">
+    <option name="JAR_PATH" value="$PROJECT_DIR$/tenant-service/target/tenant-service-bootable.jar" />
+    <option name="VM_PARAMETERS" value="-Djava.util.logging.manager=org.jboss.logmanager.LogManager -Djboss.socket.binding.port-offset=1 -Djava.net.preferIPv4Stack=true -XX:+DisableAttachMechanism -Djava.util.logging.manager=org.jboss.logmanager.LogManager -Djboss.socket.binding.port-offset=1" />
+    <option name="WORKING_DIRECTORY" value="C:\Development\ATwms" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+    <option name="ALTERNATIVE_JRE_PATH" value="21" />
+    <method v="2" />
+  </configuration>
+</component>

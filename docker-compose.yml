@@ -1,0 +1,66 @@
+# Lokale Entwicklungsinfrastruktur.
+#
+# Enthaelt bewusst NUR die Infrastruktur (Keycloak, PostgreSQL, Kafka).
+# Die vier Microservices werden waehrend der Entwicklung direkt aus IntelliJ
+# gestartet - so bleiben Hot Reload und Debugger nutzbar.
+#
+#   docker compose up -d
+#
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: saas-postgres
+    environment:
+      POSTGRES_USER: atwms
+      POSTGRES_PASSWORD: atwms
+      POSTGRES_DB: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U atwms"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: saas-keycloak
+    command:
+      - start-dev
+      - --import-realm
+      - --http-port=8180
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "8180:8180"
+    volumes:
+      - ./docker/keycloak:/opt/keycloak/data/import:ro
+
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: saas-kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:19092,CONTROLLER://:9093,EXTERNAL://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:19092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+volumes:
+  postgres-data:

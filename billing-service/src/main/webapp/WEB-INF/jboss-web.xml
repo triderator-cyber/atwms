@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Legt den Kontextpfad auf die Wurzel. Ohne diese Datei leitet WildFly ihn aus
+    dem WAR-Namen ab, die API laege also unter /<artifactId>/api/... - bei einem
+    Service pro Prozess unnoetig und ausserdem abhaengig vom Artefaktnamen.
+-->
+<jboss-web>
+    <context-root>/</context-root>
+</jboss-web>

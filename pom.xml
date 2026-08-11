@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.atwms</groupId>
+    <artifactId>saas-platform</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>SaaS Platform (Jakarta EE / MicroProfile)</name>
+    <description>
+        Mandantenfaehige SaaS-Plattform auf Basis von Jakarta EE 10, MicroProfile 6.1,
+        WildFly (Bootable JAR), Keycloak und Kafka.
+    </description>
+
+    <modules>
+        <module>common</module>
+        <module>tenant-service</module>
+        <module>billing-service</module>
+        <module>order-service</module>
+        <module>notification-service</module>
+    </modules>
+
+    <properties>
+        <maven.compiler.release>17</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <failOnMissingWebXml>false</failOnMissingWebXml>
+
+        <!-- Plattform-Versionen -->
+        <version.jakartaee.api>10.0.0</version.jakartaee.api>
+        <version.microprofile>6.1</version.microprofile>
+
+        <!-- WildFly / Galleon -->
+        <version.wildfly>35.0.1.Final</version.wildfly>
+        <version.wildfly.maven.plugin>5.0.1.Final</version.wildfly.maven.plugin>
+        <version.wildfly.ee.feature.pack>35.0.1.Final</version.wildfly.ee.feature.pack>
+        <version.postgresql.driver>42.7.4</version.postgresql.driver>
+
+        <!-- Test -->
+        <version.junit>5.10.2</version.junit>
+        <version.assertj>3.25.3</version.assertj>
+
+        <!-- Maven-Plugins -->
+        <version.plugin.compiler>3.13.0</version.plugin.compiler>
+        <version.plugin.war>3.4.0</version.plugin.war>
+        <version.plugin.jar>3.4.1</version.plugin.jar>
+        <version.plugin.surefire>3.2.5</version.plugin.surefire>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Jakarta EE 10 Web Profile API (vom Server bereitgestellt) -->
+            <dependency>
+                <groupId>jakarta.platform</groupId>
+                <artifactId>jakarta.jakartaee-web-api</artifactId>
+                <version>${version.jakartaee.api}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <!-- MicroProfile 6.1 API (vom Server bereitgestellt) -->
+            <dependency>
+                <groupId>org.eclipse.microprofile</groupId>
+                <artifactId>microprofile</artifactId>
+                <version>${version.microprofile}</version>
+                <type>pom</type>
+                <scope>provided</scope>
+            </dependency>
+
+            <!-- MicroProfile Reactive Messaging (Kafka) -->
+            <dependency>
+                <groupId>org.eclipse.microprofile.reactive.messaging</groupId>
+                <artifactId>microprofile-reactive-messaging-api</artifactId>
+                <version>3.0</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.microprofile.reactive-streams-operators</groupId>
+                <artifactId>microprofile-reactive-streams-operators-api</artifactId>
+                <version>3.0</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <!-- JDBC-Treiber, wird ins WAR gepackt und von @DataSourceDefinition genutzt -->
+            <dependency>
+                <groupId>org.postgresql</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${version.postgresql.driver}</version>
+                <scope>runtime</scope>
+            </dependency>
+
+            <!-- Internes gemeinsames Modul -->
+            <dependency>
+                <groupId>com.atwms</groupId>
+                <artifactId>common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Tests -->
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>${version.junit}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>${version.assertj}</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${version.plugin.compiler}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-war-plugin</artifactId>
+                    <version>${version.plugin.war}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>${version.plugin.jar}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${version.plugin.surefire}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.wildfly.plugins</groupId>
+                    <artifactId>wildfly-maven-plugin</artifactId>
+                    <version>${version.wildfly.maven.plugin}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+    <profiles>
+        <!--
+            Profil "bootable-jar": erzeugt pro Service ein eigenstaendig lauffaehiges
+            WildFly-Bootable-JAR (target/<service>-bootable.jar).
+            Aktivieren mit:  mvn clean package -Pbootable-jar
+        -->
+        <profile>
+            <id>bootable-jar</id>
+            <build>
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.wildfly.plugins</groupId>
+                            <artifactId>wildfly-maven-plugin</artifactId>
+                            <configuration>
+                                <feature-packs>
+                                    <feature-pack>
+                                        <location>org.wildfly:wildfly-galleon-pack:${version.wildfly.ee.feature.pack}</location>
+                                    </feature-pack>
+                                </feature-packs>
+                                <layers>
+                                    <!--
+                                        Bewusst KEIN Layer "cloud-server": dessen Konfiguration ist
+                                        auf einen Service pro Container ausgelegt, bindet fest auf
+                                        0.0.0.0:8080 und kennt keinen Port-Offset. Fuer vier
+                                        parallel laufende Services auf einer Maschine brauchen wir
+                                        die Standardkonfiguration mit ${jboss.socket.binding.port-offset}.
+                                    -->
+                                    <layer>jaxrs-server</layer>
+                                    <layer>jpa</layer>
+                                    <layer>microprofile-config</layer>
+                                    <layer>microprofile-jwt</layer>
+                                    <layer>microprofile-health</layer>
+                                    <!--
+                                        Kein Layer "microprofile-metrics": MicroProfile Metrics
+                                        wurde in WildFly zugunsten von Micrometer entfernt.
+                                        Wer Metriken braucht, ergaenzt hier <layer>micrometer</layer>
+                                        und nutzt die Annotationen aus io.micrometer.
+                                    -->
+                                    <layer>microprofile-openapi</layer>
+                                    <layer>microprofile-fault-tolerance</layer>
+                                    <layer>microprofile-rest-client</layer>
+                                    <layer>microprofile-reactive-messaging-kafka</layer>
+                                    <!--
+                                        Kein Layer "postgresql-datasource": der liegt im separaten
+                                        wildfly-datasources-galleon-pack. Statt ein drittes
+                                        Feature-Pack einzubinden, definiert jeder Service seine
+                                        DataSource per @DataSourceDefinition selbst und bringt den
+                                        JDBC-Treiber im WAR mit - reines Jakarta EE, ohne
+                                        serverspezifische Provisionierung.
+                                    -->
+                                </layers>
+                                <bootableJar>true</bootableJar>
+                                <bootableJarName>${project.artifactId}-bootable.jar</bootableJarName>
+                            </configuration>
+                            <executions>
+                                <execution>
+                                    <goals>
+                                        <goal>package</goal>
+                                    </goals>
+                                </execution>
+                            </executions>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
+            </build>
+        </profile>
+    </profiles>
+</project>
